@@ -21,7 +21,7 @@ export default function SearchBar({ onSearch }) {
       });
   }, []);
 
-  // 入力時のリアルタイム候補取得（新しい AutocompleteSuggestion API を使用）
+  // 入力時のリアルタイム候補取得
   const handleInputChange = async (e) => {
     const value = e.target.value;
     setInputValue(value);
@@ -35,7 +35,6 @@ export default function SearchBar({ onSearch }) {
 
     const places = placesLibRef.current;
 
-    // 新しい AutocompleteSuggestion API が利用可能な場合
     if (places?.AutocompleteSuggestion) {
       try {
         const { suggestions } =
@@ -60,7 +59,7 @@ export default function SearchBar({ onSearch }) {
     }
   };
 
-  // 候補選択時（緯度経度取得＆デバッグログ付き）
+  // 候補選択時（placeIdでの確実な座標取得ロジック追加）
   const handleSelectPrediction = async (suggestion) => {
     const p = suggestion.placePrediction;
     const description = p.text?.text || p.mainText?.text || "";
@@ -72,13 +71,9 @@ export default function SearchBar({ onSearch }) {
     let lat = null;
     let lng = null;
 
+    // 1. fetchFields による取得を試行
     try {
-      console.log("🔍 [SearchBar] 選択された候補:", suggestion);
-
-      // AutocompleteSuggestion から Place インスタンスを作成
       const place = suggestion.toPlace();
-
-      // 場所の詳細（位置情報: location）を取得
       await place.fetchFields({ fields: ["location", "formattedAddress"] });
 
       if (place.location) {
@@ -90,12 +85,40 @@ export default function SearchBar({ onSearch }) {
           typeof place.location.lng === "function"
             ? place.location.lng()
             : place.location.lng;
-        console.log("✅ [SearchBar] 取得成功 (lat, lng):", { lat, lng });
-      } else {
-        console.warn("⚠️ [SearchBar] place.location が取得できませんでした");
       }
     } catch (error) {
-      console.error("❌ [SearchBar] fetchFields 実行エラー:", error);
+      console.warn(
+        "fetchFields での取得失敗。Geocoderへフォールバックします:",
+        error,
+      );
+    }
+
+    // 2. もし fetchFields で lat/lng が取れなかった場合、placeId を使って正確に座標を取得
+    if (lat === null || lng === null) {
+      try {
+        const geocodingLib = await loadGoogleMapsLibrary("geocoding");
+        const geocoder = new geocodingLib.Geocoder();
+
+        // placeId を優先してジオコーディング（一意に特定の場所を特定）
+        const request = p.placeId
+          ? { placeId: p.placeId }
+          : {
+              address: p.secondaryText?.text
+                ? `${p.secondaryText.text} ${description}`
+                : description,
+            };
+
+        const response = await geocoder.geocode(request);
+
+        if (response.results && response.results.length > 0) {
+          const location = response.results[0].geometry.location;
+          lat = location.lat();
+          lng = location.lng();
+          console.log("✅ Geocoder で特定座標を取得しました:", { lat, lng });
+        }
+      } catch (geocoderError) {
+        console.error("Geocoder による座標取得エラー:", geocoderError);
+      }
     }
 
     const searchData = {
@@ -107,7 +130,7 @@ export default function SearchBar({ onSearch }) {
       lng: lng,
     };
 
-    console.log("📤 [SearchBar] onSearch に渡すデータ:", searchData);
+    console.log("📤 [SearchBar] 確定データ:", searchData);
     onSearch(searchData);
   };
 
