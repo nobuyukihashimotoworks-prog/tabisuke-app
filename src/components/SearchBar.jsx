@@ -60,7 +60,7 @@ export default function SearchBar({ onSearch }) {
     }
   };
 
-  // ★ 修正箇所：候補選択時に toPlace() から lat / lng を非同期取得する
+  // 候補選択時（緯度経度取得＆デバッグログ付き）
   const handleSelectPrediction = async (suggestion) => {
     const p = suggestion.placePrediction;
     const description = p.text?.text || p.mainText?.text || "";
@@ -73,8 +73,11 @@ export default function SearchBar({ onSearch }) {
     let lng = null;
 
     try {
+      console.log("🔍 [SearchBar] 選択された候補:", suggestion);
+
       // AutocompleteSuggestion から Place インスタンスを作成
       const place = suggestion.toPlace();
+
       // 場所の詳細（位置情報: location）を取得
       await place.fetchFields({ fields: ["location", "formattedAddress"] });
 
@@ -87,23 +90,25 @@ export default function SearchBar({ onSearch }) {
           typeof place.location.lng === "function"
             ? place.location.lng()
             : place.location.lng;
+        console.log("✅ [SearchBar] 取得成功 (lat, lng):", { lat, lng });
+      } else {
+        console.warn("⚠️ [SearchBar] place.location が取得できませんでした");
       }
     } catch (error) {
-      console.warn(
-        "Place location の取得に失敗しました (テキスト検索へフォールバック):",
-        error,
-      );
+      console.error("❌ [SearchBar] fetchFields 実行エラー:", error);
     }
 
-    // 親コンポーネントへ引き渡すデータ（lat, lng を含めて渡す）
-    onSearch({
+    const searchData = {
       description: description,
       placeId: p.placeId,
       mainText: p.mainText?.text || description,
       secondaryText: p.secondaryText?.text || "",
       lat: lat,
       lng: lng,
-    });
+    };
+
+    console.log("📤 [SearchBar] onSearch に渡すデータ:", searchData);
+    onSearch(searchData);
   };
 
   // 検索ボタン/Enter押下時
