@@ -60,8 +60,8 @@ export default function SearchBar({ onSearch }) {
     }
   };
 
-  // 候補選択時
-  const handleSelectPrediction = (suggestion) => {
+  // ★ 修正箇所：候補選択時に toPlace() から lat / lng を非同期取得する
+  const handleSelectPrediction = async (suggestion) => {
     const p = suggestion.placePrediction;
     const description = p.text?.text || p.mainText?.text || "";
 
@@ -69,12 +69,40 @@ export default function SearchBar({ onSearch }) {
     setPredictions([]);
     setIsOpen(false);
 
-    // 親コンポーネントへ引き渡すデータ（構造を維持）
+    let lat = null;
+    let lng = null;
+
+    try {
+      // AutocompleteSuggestion から Place インスタンスを作成
+      const place = suggestion.toPlace();
+      // 場所の詳細（位置情報: location）を取得
+      await place.fetchFields({ fields: ["location", "formattedAddress"] });
+
+      if (place.location) {
+        lat =
+          typeof place.location.lat === "function"
+            ? place.location.lat()
+            : place.location.lat;
+        lng =
+          typeof place.location.lng === "function"
+            ? place.location.lng()
+            : place.location.lng;
+      }
+    } catch (error) {
+      console.warn(
+        "Place location の取得に失敗しました (テキスト検索へフォールバック):",
+        error,
+      );
+    }
+
+    // 親コンポーネントへ引き渡すデータ（lat, lng を含めて渡す）
     onSearch({
       description: description,
       placeId: p.placeId,
       mainText: p.mainText?.text || description,
       secondaryText: p.secondaryText?.text || "",
+      lat: lat,
+      lng: lng,
     });
   };
 
