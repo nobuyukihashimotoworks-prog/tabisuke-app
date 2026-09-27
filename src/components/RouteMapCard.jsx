@@ -111,7 +111,7 @@ export default function RouteMapCard({ destination }) {
           directionsRendererRef.current.setMap(map);
         }
 
-        // 目的地の形式を整える
+        // ★ 目的地の形式を整える（lat/lng 最優先 & 詳細住所での検索補正）
         let destinationParam = null;
 
         if (typeof destination === "string") {
@@ -120,17 +120,27 @@ export default function RouteMapCard({ destination }) {
           const lat = Number(destination.lat ?? destination.latitude);
           const lng = Number(destination.lng ?? destination.longitude);
 
+          // 1. 緯度・経度が数値で存在すれば最優先（ピンポイント位置を直接指定）
           if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
             destinationParam = { lat, lng };
-          } else if (destination.placeId) {
-            // DirectionsService は { placeId } オブジェクトを直接許容
+            console.log(
+              "🎯 [RouteMapCard] 緯度経度をピンポイント指定:",
+              destinationParam,
+            );
+          }
+          // 2. 住所+名称のフルセットで検索（名前被りを防止）
+          else if (destination.description) {
+            destinationParam = destination.description;
+            console.log("📍 [RouteMapCard] フル住所で検索:", destinationParam);
+          }
+          // 3. placeId
+          else if (destination.placeId) {
             destinationParam = { placeId: destination.placeId };
-          } else {
+          }
+          // 4. 名称のみ
+          else {
             const text =
-              destination.mainText ||
-              destination.name ||
-              destination.description ||
-              destination.address;
+              destination.mainText || destination.name || destination.address;
             if (text) destinationParam = String(text).trim();
           }
         }
@@ -188,26 +198,30 @@ export default function RouteMapCard({ destination }) {
 
   const getExternalMapsUrl = () => {
     let destParam = "";
-    let placeIdParam = "";
 
     if (typeof destination === "object" && destination !== null) {
-      const name =
-        destination.mainText ||
-        destination.description ||
-        destination.name ||
-        "";
-      destParam = encodeURIComponent(name);
-      if (destination.placeId) {
-        placeIdParam = `&destination_place_id=${destination.placeId}`;
+      // 緯度経度があればそれを外部アプリへ直接渡す
+      const lat = Number(destination.lat ?? destination.latitude);
+      const lng = Number(destination.lng ?? destination.longitude);
+
+      if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+        destParam = `${lat},${lng}`;
+      } else {
+        const name =
+          destination.description ||
+          destination.mainText ||
+          destination.name ||
+          "";
+        destParam = encodeURIComponent(name);
       }
     } else {
       destParam = encodeURIComponent(destination || "");
     }
 
     if (currentOrigin) {
-      return `https://www.google.com/maps/dir/?api=1&origin=${currentOrigin.lat},${currentOrigin.lng}&destination=${destParam}${placeIdParam}&travelmode=transit`;
+      return `https://www.google.com/maps/dir/?api=1&origin=${currentOrigin.lat},${currentOrigin.lng}&destination=${destParam}&travelmode=transit`;
     }
-    return `https://www.google.com/maps/dir/?api=1&destination=${destParam}${placeIdParam}&travelmode=transit`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${destParam}&travelmode=transit`;
   };
 
   return (
