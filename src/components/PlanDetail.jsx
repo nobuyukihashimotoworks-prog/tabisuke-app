@@ -227,7 +227,7 @@ export default function PlanDetail({
       </div>
 
       {/* 2. マップエリア */}
-      <RouteMapCard destination={targetLocation} />
+      <RouteMapCard destination={plan?.location || plan?.destination} />
 
       {/* 3. やりたいこと エリア */}
       <div className="space-y-2">
