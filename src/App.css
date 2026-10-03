@@ -604,9 +604,10 @@
    季節行事・記念日テキストの装飾強化
    ========================================================= */
 .fc-event.seasonal-event-label {
-  background-color: #f3e8ff !important; /* 薄いパープル背景 */
-  border: 1px solid #e9d5ff !important; /* ほんのり濃い枠線 */
-  color: #6b21a8 !important; /* はっきりした濃いパープル文字 */
+  --fc-event-text-color: #6b21a8 !important;
+  background-color: #f3e8ff !important;
+  border: 1px solid #e9d5ff !important;
+  color: #6b21a8 !important;
   font-size: 0.62rem !important;
   letter-spacing: -0.03em !important;
   border-radius: 4px;
