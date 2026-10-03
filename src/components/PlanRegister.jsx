@@ -132,7 +132,7 @@ export default function PlanRegister({
       id: Date.now(),
       location: location,
       title: planTitle.trim(),
-      date: formattedDateText, // 重複を解消して共通変数を使用
+      date: formattedDateText,
       dateRange: dateRange,
       todos: todoList,
     };

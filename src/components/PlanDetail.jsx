@@ -42,7 +42,7 @@ export default function PlanDetail({
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
 
-  // ★ Figma撮影用のテスト天気機能（テスト時はコメント解除）
+  // ★ テスト天気機能（テスト時はコメント解除）
   // const [testWeatherKey, setTestWeatherKey] = useState(null);
   // const displayWeather = testWeatherKey && typeof TEST_WEATHER_DATA !== "undefined" ? TEST_WEATHER_DATA[testWeatherKey] : weather;
 
@@ -62,7 +62,6 @@ export default function PlanDetail({
         ""
       : rawLocation || "";
 
-  // plan が別の旅程に切り替わった場合に todos をリセット
   if (plan?.id !== prevPlanId) {
     setPrevPlanId(plan?.id);
     setTodos(plan?.todos || []);

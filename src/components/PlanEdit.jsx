@@ -1,10 +1,9 @@
 import { useState } from "react";
 import HeaderLogo from "./HeaderLogo";
 import CalendarCard from "./CalendarCard";
-import CustomModal from "./CustomModal"; // ★ CustomModal をインポート
+import CustomModal from "./CustomModal";
 
 export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
-  // 初期値として既存のタイトルと期間をセット
   const [title, setTitle] = useState(plan?.title || "");
 
   // 単日（plan.date）または 期間（plan.dateRange）に対応
@@ -16,7 +15,7 @@ export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
   // モーダルの表示ステート ("none" | "alert" | "confirm" | "complete")
   const [modalState, setModalState] = useState("none");
 
-  // カレンダーでタップされた時の期間選択ロジック
+  // カレンダーでタップされた時の期間選択処理
   const handleDateSelect = (clickedDateStr) => {
     const { startDate, endDate } = dateRange;
 
@@ -76,14 +75,11 @@ export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
       },
     };
 
-    console.log("① 更新データ:", updatedPlan);
-
     if (onUpdatePlan) {
       console.log("② onUpdatePlan を実行します");
       onUpdatePlan(updatedPlan);
     }
 
-    console.log("③ modalState を complete に変更します");
     setModalState("complete");
   };
 
@@ -166,13 +162,7 @@ export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
         okText="はい"
         cancelText="いいえ"
         onConfirm={handleConfirm}
-        onClose={() => {
-          // 「はい」を押した時は handleConfirm 内で modalState が "complete" になるため、
-          // ここで "none" に上書きされないよう guard を入れます。
-          if (modalState !== "complete") {
-            setModalState("none");
-          }
-        }}
+        onClose={() => setModalState("none")}
       />
 
       {/* ★ 7. 変更完了モーダル */}

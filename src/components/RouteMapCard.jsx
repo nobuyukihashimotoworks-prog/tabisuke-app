@@ -15,9 +15,6 @@ export default function RouteMapCard({ destination }) {
   useEffect(() => {
     let isMounted = true;
 
-    // デバッグ用: 親 component から受け取っている destination の実体を確認
-    console.log("[RouteMapCard] 受け取った destination:", destination);
-
     // 現在地取得
     const getCurrentLocation = () => {
       return new Promise((resolve) => {
@@ -33,9 +30,6 @@ export default function RouteMapCard({ destination }) {
         const timer = setTimeout(() => {
           if (!hasResolved) {
             hasResolved = true;
-            console.warn(
-              "位置情報取得タイムアウト。デフォルト位置を使用します。",
-            );
             resolve(defaultLocation);
           }
         }, 5000);
@@ -53,11 +47,10 @@ export default function RouteMapCard({ destination }) {
               resolve(loc);
             }
           },
-          (error) => {
+          () => {
             if (!hasResolved) {
               hasResolved = true;
               clearTimeout(timer);
-              console.warn("位置情報取得エラー:", error);
               if (isMounted) setCurrentOrigin(defaultLocation);
               resolve(defaultLocation);
             }
@@ -123,7 +116,6 @@ export default function RouteMapCard({ destination }) {
           if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
             destinationParam = { lat, lng };
           } else if (destination.placeId) {
-            // DirectionsService は { placeId } オブジェクトを直接許容
             destinationParam = { placeId: destination.placeId };
           } else {
             const text =
@@ -162,7 +154,6 @@ export default function RouteMapCard({ destination }) {
               // 地図上にルート描画＆画角を自動調整
               directionsRendererRef.current.setDirections(result);
             } else {
-              console.error("DirectionsService エラー status:", status);
               setErrorMessage(
                 `ルートが見つかりませんでした (ステータス: ${status})`,
               );
@@ -170,8 +161,7 @@ export default function RouteMapCard({ destination }) {
             setLoading(false);
           },
         );
-      } catch (error) {
-        console.error("Google Maps エラー:", error);
+      } catch {
         if (isMounted) {
           setErrorMessage("マップ処理中にエラーが発生しました。");
           setLoading(false);
@@ -187,7 +177,7 @@ export default function RouteMapCard({ destination }) {
   }, [destination, selectedMode]);
 
   const getExternalMapsUrl = () => {
-    let destParam = ""; // ★ この1行（変数宣言）を追加しました
+    let destParam = "";
     let placeIdParam = "";
 
     if (typeof destination === "object" && destination !== null) {
@@ -197,17 +187,19 @@ export default function RouteMapCard({ destination }) {
         destination.name ||
         "";
       destParam = encodeURIComponent(name);
+
       if (destination.placeId) {
         placeIdParam = `&destination_place_id=${destination.placeId}`;
       }
-    } else {
-      destParam = encodeURIComponent(destination || "");
+    } else if (typeof destination === "string") {
+      destParam = encodeURIComponent(destination);
     }
 
-    if (currentOrigin) {
-      return `https://www.google.com/maps/dir/?api=1&origin=${currentOrigin.lat},${currentOrigin.lng}&destination=${destParam}${placeIdParam}&travelmode=transit`;
-    }
-    return `https://www.google.com/maps/dir/?api=1&destination=${destParam}${placeIdParam}&travelmode=transit`;
+    const originParam = currentOrigin
+      ? `origin=${currentOrigin.lat},${currentOrigin.lng}&`
+      : "";
+
+    return `https://www.google.com/maps/dir/?api=1&${originParam}destination=${destParam}${placeIdParam}&travelmode=transit`;
   };
 
   return (

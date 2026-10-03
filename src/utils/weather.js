@@ -55,7 +55,6 @@ function generateQueryCandidates(rawLocation) {
 
 /**
  * 1. 地名から 緯度・経度 を取得する (OpenStreetMap / Nominatim API を使用)
- *    ※ 日本の住所・施設名に対する検索精度が非常に高いです。
  */
 export async function getCoordinates(locationName) {
   if (!locationName) return null;
@@ -135,7 +134,7 @@ export async function fetchWeather(lat, lon) {
       label: conditionInfo.label,
       icon: conditionInfo.icon,
       main: mainCondition || "Clouds",
-      conditionKey: mainCondition || "Clouds", // 👈 ここを追加！（"Clear", "Rain", "Snow" 等が入る）
+      conditionKey: mainCondition || "Clouds",
       temp: Math.round(currentWeather.main.temp),
       maxTemp: Math.round(currentWeather.main.temp_max),
       minTemp: Math.round(currentWeather.main.temp_min),

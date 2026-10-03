@@ -188,7 +188,7 @@
 /* 天気カード共通スタイル */
 .weather-card-container {
   position: relative;
-  overflow: hidden; /* アニメーションが枠外にはみ出さないようにカット */
+  overflow: hidden;
   transition: background 0.5s ease;
   border-radius: 12px;
   padding: 16px;
@@ -210,11 +210,11 @@
   color: #222;
 }
 
-/* Rain (雨) ★文字と気温を強制的に白にし、視認性を保持 */
+/* Rain (雨) 文字と気温を強制的に白にし、視認性を保持 */
 .weather-bg-Rain,
 .weather-bg-Rain * {
   color: #ffffff !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); /* 背景に対して文字をくっきり見せる影 */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 .weather-bg-Rain {
   background: linear-gradient(135deg, #3a7bd5 0%, #3a6073 100%);
@@ -226,7 +226,7 @@
   color: #222;
 }
 
-/* Thunderstorm (雷雨) ★文字と気温を強制的に白にし、黒影で視認性を強化 */
+/* Thunderstorm (雷雨) 文字と気温を強制的に白にし、黒影で視認性を強化 */
 .weather-bg-Thunderstorm,
 .weather-bg-Thunderstorm * {
   color: #ffffff !important;
@@ -285,7 +285,6 @@
     rgba(255, 255, 255, 0.2) 35%,
     transparent 65%
   );
-  /* 秒数を 4s → 2.5s に短縮してテンポを上げる */
   animation: pulseLight 2.5s ease-in-out infinite alternate;
 }
 
@@ -583,15 +582,13 @@
 .fc-event.holiday-event-label {
   background-color: transparent !important;
   border: none !important;
-  color: #dc2626 !important; /* はっきりした赤文字 */
-  font-size: 0.62rem !important; /* 少しコンパクトにして収まりやすく */
-  letter-spacing: -0.03em !important; /* 文字間隔をほんの少し詰める */
+  color: #dc2626 !important;
+  font-size: 0.62rem !important;
+  letter-spacing: -0.03em !important;
   font-weight: 700 !important;
   padding: 0 1px !important;
   box-shadow: none !important;
-
-  /* テキストの折り返しと溢れ処理 */
-  white-space: normal !important; /* 自動折り返しを許可 */
+  white-space: normal !important;
   word-break: break-all !important;
   line-height: 1.1 !important;
 }
@@ -622,13 +619,13 @@
 
 /* カレンダー内部要素の文字色上書き */
 .fc-event.seasonal-event-label .fc-event-title {
-  color: #6b21a8 !important; /* 確実に濃いパープルにする */
+  color: #6b21a8 !important;
   white-space: normal !important;
   overflow: hidden !important;
 }
 
 /* =========================================================
-   2. 「今日」と「祝日/土曜」の区別・スタイル強化
+   2. 「今日」と「祝日/土曜」の区別・スタイル
    ========================================================= */
 
 /* 祝日セル（うっすらピンク背景） */
@@ -656,9 +653,9 @@
 
 /* 「今日」の日付数字バッジ */
 .fc .fc-day-today .fc-daygrid-day-number {
-  background-color: #f59e0b !important; /* 数字の背景をオレンジバッジ化 */
-  color: #ffffff !important; /* 白文字 */
-  border-radius: 9999px; /* 丸バッジ */
+  background-color: #f59e0b !important;
+  color: #ffffff !important;
+  border-radius: 9999px;
   padding: 2px 6px !important;
   font-weight: bold;
 }
