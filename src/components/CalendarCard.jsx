@@ -7,7 +7,7 @@ import { SEASONAL_EVENTS } from "../utils/seasonalEvents";
 
 export default function CalendarCard({
   onDateSelect,
-  onPlanSelect, // ★追加：旅程詳細を開くための関数
+  onPlanSelect,
   dateRange = { startDate: null, endDate: null },
   plans = [],
   events = [],
@@ -18,13 +18,11 @@ export default function CalendarCard({
     }
   };
 
-  // ★修正：イベントをクリックした時の処理（祝日・行事ラベルの場合は日付選択を行う）
   const handleEventClick = (info) => {
     const isHolidayOrSeasonal =
       info.event.extendedProps?.isHoliday ||
       info.event.extendedProps?.isSeasonal;
 
-    // 祝日や行事のラベルがクリックされた場合は日付選択を行う
     if (isHolidayOrSeasonal) {
       const eventDateStr = info.event.startStr.split("T")[0];
       if (onDateSelect) onDateSelect(eventDateStr);
@@ -32,20 +30,16 @@ export default function CalendarCard({
     }
 
     const planId = info.event.id;
-    // 該当する旅程データを検索
     const targetPlan = plans.find((p) => String(p.id) === String(planId));
 
     if (targetPlan && onPlanSelect) {
-      // 登録済み旅程が押されたら詳細画面用の処理を呼ぶ
       onPlanSelect(targetPlan);
     } else {
-      // 万が一旅程データがない場合は従来通り日付選択処理へ
       const eventDateStr = info.event.startStr.split("T")[0];
       if (onDateSelect) onDateSelect(eventDateStr);
     }
   };
 
-  // ★追加：祝日・季節イベントデータの自動生成（前年・今年・翌年の3年分）
   const holidayAndSeasonalEvents = useMemo(() => {
     const holidayEvents = [];
     const currentYear = new Date().getFullYear();
@@ -53,7 +47,6 @@ export default function CalendarCard({
     [-1, 0, 1].forEach((offset) => {
       const year = currentYear + offset;
 
-      // 日本の祝日を取得
       const startDate = new Date(year, 0, 1);
       const endDate = new Date(year, 11, 31);
       const holidays = holidayJp.between(startDate, endDate);
@@ -64,12 +57,11 @@ export default function CalendarCard({
         const dStr = String(h.date.getDate()).padStart(2, "0");
         const dateStr = `${yStr}-${mStr}-${dStr}`;
 
-        // ★追加: ライブラリの「休日」という名称を「国民の休日」に読み替える
         const holidayTitle = h.name === "休日" ? "国民の休日" : h.name;
 
         holidayEvents.push({
           id: `holiday-${dateStr}`,
-          title: holidayTitle, // ★変換後のタイトルをセット
+          title: holidayTitle,
           start: dateStr,
           allDay: true,
           className: "holiday-event-label",
@@ -77,7 +69,6 @@ export default function CalendarCard({
         });
       });
 
-      // 季節の行事を追加（インポートした SEASONAL_EVENTS を使用）
       SEASONAL_EVENTS.forEach((e) => {
         const mStr = String(e.month).padStart(2, "0");
         const dStr = String(e.day).padStart(2, "0");
@@ -98,7 +89,6 @@ export default function CalendarCard({
   }, []);
 
   const formattedPlanEvents = plans.map((plan) => {
-    // dateRange があればそれを優先、無ければ plan.date を使用
     const startDate = plan.dateRange?.startDate || plan.date;
     let endDate = plan.dateRange?.endDate || startDate;
 
@@ -123,7 +113,6 @@ export default function CalendarCard({
     };
   });
 
-  // 外部からのevents、旅程イベント、祝日・行事イベントを全て統合
   const allEvents = [
     ...events,
     ...formattedPlanEvents,
@@ -146,25 +135,41 @@ export default function CalendarCard({
         dateClick={handleDateClick}
         eventClick={handleEventClick}
         events={allEvents}
+        /* ★追加: イベント描画カスタム（溢れた文字を ellipsis/truncate で省略） */
+        eventContent={(eventInfo) => {
+          const isHolidayOrSeasonal =
+            eventInfo.event.extendedProps?.isHoliday ||
+            eventInfo.event.extendedProps?.isSeasonal;
+
+          // 祝日や季節イベントは既存の表示スタイルのまま
+          if (isHolidayOrSeasonal) {
+            return <div className="truncate">{eventInfo.event.title}</div>;
+          }
+
+          // 登録された旅程タイトルの枠は truncate で三点リーダー省略
+          return (
+            <div className="w-full px-1 truncate text-xs font-bold text-white">
+              {eventInfo.event.title}
+            </div>
+          );
+        }}
         dayCellClassNames={(arg) => {
           const classes = [];
           const date = arg.date;
-          const dayOfWeek = date.getDay(); // 0: 日曜, 6: 土曜
+          const dayOfWeek = date.getDay();
 
           const year = date.getFullYear();
           const month = String(date.getMonth() + 1).padStart(2, "0");
           const day = String(date.getDate()).padStart(2, "0");
           const cellDate = `${year}-${month}-${day}`;
 
-          // --- 1. 土・日・祝日の判定クラスを追加 ---
           const isHoliday = holidayJp.isHoliday(date);
           if (dayOfWeek === 0 || isHoliday) {
-            classes.push("fc-day-holiday"); // 日曜・祝日
+            classes.push("fc-day-holiday");
           } else if (dayOfWeek === 6) {
-            classes.push("fc-day-saturday"); // 土曜日
+            classes.push("fc-day-saturday");
           }
 
-          // --- 2. 既存の選択中日付クラスの判定 ---
           const { startDate, endDate } = dateRange;
 
           if (startDate && !endDate && cellDate === startDate) {

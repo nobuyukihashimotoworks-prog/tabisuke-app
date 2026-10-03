@@ -25,12 +25,26 @@ export default function PlanRegister({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
 
-  // 指定された日付（YYYY-MM-DD）が既存の旅程と重複しているかチェックする関数
+  // 目的地名の安全な取得
+  const locationName =
+    typeof location === "object" && location !== null
+      ? location.mainText || location.name || location.description || "目的地"
+      : location || "目的地";
+
+  // 表示用・保存用の共通日付フォーマット
+  const formattedDateText = dateRange.endDate
+    ? `${dateRange.startDate} 〜 ${dateRange.endDate}`
+    : dateRange.startDate;
+
+  // 30文字を超えているかどうかの判定フラグ
+  const isTitleTooLong = planTitle.length > 30;
+
+  // 指定された日付（YYYY-MM-DD）が既存の旅程と重複しているかチェック
   const isDateBooked = (dateStr) => {
     return plans.some((plan) => {
       const start = plan.dateRange?.startDate;
-      const end = plan.dateRange?.endDate || start;
       if (!start) return false;
+      const end = plan.dateRange?.endDate || start;
       return dateStr >= start && dateStr <= end;
     });
   };
@@ -48,8 +62,8 @@ export default function PlanRegister({
       if (selectedDateStr >= dateRange.startDate) {
         const hasOverlap = plans.some((plan) => {
           const start = plan.dateRange?.startDate;
-          const end = plan.dateRange?.endDate || start;
           if (!start) return false;
+          const end = plan.dateRange?.endDate || start;
           return !(selectedDateStr < start || dateRange.startDate > end);
         });
 
@@ -79,7 +93,7 @@ export default function PlanRegister({
 
     const newTodo = {
       id: Date.now(),
-      text: todoInput,
+      text: todoInput.trim(),
     };
     setTodoList((prev) => [...prev, newTodo]);
     setTodoInput("");
@@ -99,13 +113,11 @@ export default function PlanRegister({
 
     const trimmedTitle = planTitle.trim();
 
-    // 未入力チェック
     if (!trimmedTitle) {
       setAlertMessage("タイトルの入力がありません。");
       return;
     }
 
-    // 30文字超えチェック
     if (trimmedTitle.length > 30) {
       setAlertMessage("タイトルが長すぎます。");
       return;
@@ -116,15 +128,11 @@ export default function PlanRegister({
 
   // モーダル内で「確定」を押した時の最終登録処理
   const handleFinalConfirm = () => {
-    const formattedDate = dateRange.endDate
-      ? `${dateRange.startDate} 〜 ${dateRange.endDate}`
-      : dateRange.startDate;
-
     const newPlan = {
       id: Date.now(),
       location: location,
       title: planTitle.trim(),
-      date: formattedDate,
+      date: formattedDateText, // 重複を解消して共通変数を使用
       dateRange: dateRange,
       todos: todoList,
     };
@@ -132,20 +140,6 @@ export default function PlanRegister({
     setIsConfirmOpen(false);
     onSavePlan(newPlan);
   };
-
-  // location がオブジェクトならスポット名を取り出し、文字列ならそのまま使う
-  const locationName =
-    typeof location === "object" && location !== null
-      ? location.mainText || location.name || location.description || "目的地"
-      : location || "目的地";
-
-  // 表示用の日付フォーマットテキスト
-  const formattedDateText = dateRange.endDate
-    ? `${dateRange.startDate} 〜 ${dateRange.endDate}`
-    : dateRange.startDate;
-
-  // 30文字を超えているかどうかの判定フラグ
-  const isTitleTooLong = planTitle.length > 30;
 
   return (
     <div className="w-full max-w-md bg-app-bg text-app-main p-6 space-y-6">
@@ -205,7 +199,6 @@ export default function PlanRegister({
       <div className="space-y-3 text-center pt-2">
         <h3 className="font-bold text-slate-700">予定を立てますか？</h3>
 
-        {/* ★ 入力エリア ＋ リアルタイム警告・カウント */}
         <div className="space-y-1">
           <input
             type="text"
@@ -219,7 +212,6 @@ export default function PlanRegister({
             }`}
           />
 
-          {/* 文字数カウントとリアルタイム警告文 */}
           <div className="flex justify-between items-center px-4 text-xs font-bold">
             <span className="text-red-500">
               {isTitleTooLong && "※ タイトルが長すぎます（30文字以内）"}

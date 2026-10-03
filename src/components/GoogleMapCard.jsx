@@ -2,10 +2,16 @@ export default function GoogleMapCard({ location }) {
   // .env.local から API キーを取得
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-  // location が undefined / null / 空文字の場合でもエラーにならないよう安全に判定
-  const validLocation = typeof location === "string" ? location.trim() : "";
+  // 1. location が「文字列」か「オブジェクト」かを判定して地名を抽出（安全ガード）
+  const rawLocation =
+    typeof location === "string"
+      ? location
+      : location?.mainText || location?.name || location?.description || "";
 
-  // ★ 修正1: 検索キーワードがない場合、デフォルトを "My Location"（現在地）にする
+  // 2. 余計な空白をカットして安全な文字列にする
+  const validLocation = rawLocation.trim();
+
+  // 3. 検索キーワードがない場合、デフォルトを "My Location"（現在地）にする
   const targetLocation = validLocation !== "" ? validLocation : "My Location";
 
   // Google Maps Embed API の URL 生成（q パラメータに場所を指定）
@@ -35,7 +41,7 @@ export default function GoogleMapCard({ location }) {
           style={{ border: 0 }}
           loading="lazy"
           allowFullScreen
-          allow="geolocation" // ★ 修正2: ブラウザの位置情報（GPS）権限を許可
+          allow="geolocation"
           src={mapSrc}
         />
       </div>

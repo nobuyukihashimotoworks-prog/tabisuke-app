@@ -7,65 +7,23 @@ import {
   FALLBACK_WEATHER,
 } from "../utils/weather";
 
-// 🛠️ Figmaキャプチャ用：ダミー天気データ（全種類拡張版）
+// =========================================================================
+// 【確認・検証用】ダミー天気データ
+// ※ 提出時は通常データを使用しますが、テスト確認用に保持しています。
+// ※ 使用する際は、下記のコメントアウトと JSX 内のテストパネルを解除してください。
+// =========================================================================
+/*
 const TEST_WEATHER_DATA = {
-  Clear: {
-    main: "Clear",
-    icon: "☀️",
-    label: "晴れ",
-    temp: 22,
-    isFallback: false,
-  },
-  Clouds: {
-    main: "Clouds",
-    icon: "☁️",
-    label: "曇り",
-    temp: 18,
-    isFallback: false,
-  },
-  Rain: {
-    main: "Rain",
-    icon: "☔",
-    label: "雨",
-    temp: 15,
-    isFallback: false,
-  },
-  Drizzle: {
-    main: "Drizzle",
-    icon: "🌧️",
-    label: "小雨",
-    temp: 16,
-    isFallback: false,
-  },
-  Thunderstorm: {
-    main: "Thunderstorm",
-    icon: "⚡",
-    label: "雷雨",
-    temp: 19,
-    isFallback: false,
-  },
-  Snow: {
-    main: "Snow",
-    icon: "❄️",
-    label: "雪",
-    temp: 1,
-    isFallback: false,
-  },
-  Mist: {
-    main: "Mist",
-    icon: "🌫️",
-    label: "霧",
-    temp: 12,
-    isFallback: false,
-  },
-  Fog: {
-    main: "Fog",
-    icon: "🌫️",
-    label: "濃霧",
-    temp: 10,
-    isFallback: false,
-  },
+  Clear: { main: "Clear", icon: "☀️", label: "晴れ", temp: 22, isFallback: false },
+  Clouds: { main: "Clouds", icon: "☁️", label: "曇り", temp: 18, isFallback: false },
+  Rain: { main: "Rain", icon: "☔", label: "雨", temp: 15, isFallback: false },
+  Drizzle: { main: "Drizzle", icon: "🌧️", label: "小雨", temp: 16, isFallback: false },
+  Thunderstorm: { main: "Thunderstorm", icon: "⚡", label: "雷雨", temp: 19, isFallback: false },
+  Snow: { main: "Snow", icon: "❄️", label: "雪", temp: 1, isFallback: false },
+  Mist: { main: "Mist", icon: "🌫️", label: "霧", temp: 12, isFallback: false },
+  Fog: { main: "Fog", icon: "🌫", label: "濃霧", temp: 10, isFallback: false },
 };
+*/
 
 export default function PlanDetail({
   plan,
@@ -84,18 +42,17 @@ export default function PlanDetail({
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
 
-  // ★ Figma撮影用のテスト天気キー（Clear, Rain 等）
-  const [testWeatherKey, setTestWeatherKey] = useState(null);
+  // ★ Figma撮影用のテスト天気機能（テスト時はコメント解除）
+  // const [testWeatherKey, setTestWeatherKey] = useState(null);
+  // const displayWeather = testWeatherKey && typeof TEST_WEATHER_DATA !== "undefined" ? TEST_WEATHER_DATA[testWeatherKey] : weather;
 
-  // ★ 実際表示に使う天気データ（テストが選択されていればそれを優先）
-  const displayWeather = testWeatherKey
-    ? TEST_WEATHER_DATA[testWeatherKey]
-    : weather;
+  // 通常時の表示用天気データ
+  const displayWeather = weather;
 
   // 削除モーダルの状態管理: "none" | "confirm" | "complete"
   const [deleteModalState, setDeleteModalState] = useState("none");
 
-  // ★ 修正箇所1: 場所名がオブジェクト（AutoComplete選択データ）か文字列か判定して安全に文字列を取り出す
+  // 場所名がオブジェクト（AutoComplete選択データ）か文字列か判定して安全に文字列を取り出す
   const rawLocation = plan?.location || plan?.destination;
   const targetLocation =
     typeof rawLocation === "object" && rawLocation !== null
@@ -114,9 +71,6 @@ export default function PlanDetail({
   // 天気データの取得処理
   useEffect(() => {
     async function loadWeather() {
-      console.log("【デバッグ】受け取ったplanデータ:", plan);
-      console.log("【デバッグ】判定された地名:", targetLocation);
-
       if (!targetLocation) {
         setWeather(FALLBACK_WEATHER);
         return;
@@ -328,13 +282,14 @@ export default function PlanDetail({
 
       {/* 4. 天気エリア */}
       <div className="space-y-2">
-        {/* 🛠️ Figma撮影用：一時的な切り替えボタン */}
+        {/* 🛠️ Figma撮影用：一時的な切り替えボタン（確認時は下記のコメントアウト解除） */}
+        {/*
         <div className="p-2.5 bg-slate-800 text-white rounded-2xl text-xs space-y-2 z-20 relative">
           <p className="font-bold text-slate-300">
             🔍 天気テスト切替（Figma撮影用）
           </p>
           <div className="flex gap-1.5 flex-wrap">
-            {Object.keys(TEST_WEATHER_DATA).map((key) => (
+            {TEST_WEATHER_DATA && Object.keys(TEST_WEATHER_DATA).map((key) => (
               <button
                 key={key}
                 type="button"
@@ -357,8 +312,8 @@ export default function PlanDetail({
             </button>
           </div>
         </div>
+        */}
 
-        {/* ★ 修正箇所2: targetLocation が確実に文字列になるので直接描画可能 */}
         <h3 className="text-center font-bold text-slate-700 text-sm">
           {getDateText() ? `${getDateText()} の` : ""}
           {targetLocation || "目的地"} の天気
@@ -376,7 +331,7 @@ export default function PlanDetail({
           )}
 
           <div className="relative z-10 w-full flex items-center justify-center">
-            {weatherLoading && !testWeatherKey ? (
+            {weatherLoading ? (
               <p className="text-xs text-slate-400 font-bold animate-pulse">
                 天気を読み込み中...
               </p>

@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { loadGoogleMapsLibrary } from "../utils/googleMapsLoader";
+import CustomModal from "./CustomModal";
 
 export default function SearchBar({ onSearch }) {
   const [inputValue, setInputValue] = useState("");
   const [predictions, setPredictions] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
 
   // places ライブラリを保持するRef
   const placesLibRef = useRef(null);
@@ -114,7 +118,6 @@ export default function SearchBar({ onSearch }) {
           const location = response.results[0].geometry.location;
           lat = location.lat();
           lng = location.lng();
-          console.log("✅ Geocoder で特定座標を取得しました:", { lat, lng });
         }
       } catch (geocoderError) {
         console.error("Geocoder による座標取得エラー:", geocoderError);
@@ -130,14 +133,20 @@ export default function SearchBar({ onSearch }) {
       lng: lng,
     };
 
-    console.log("📤 [SearchBar] 確定データ:", searchData);
     onSearch(searchData);
   };
 
   // 検索ボタン/Enter押下時
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+
+    // 入力枠が空（またはスペースのみ）の場合に CustomModal を表示
+    if (!inputValue.trim()) {
+      setModalMessage("目的地を入力してください");
+      setIsModalOpen(true);
+      return;
+    }
+
     setPredictions([]);
     setIsOpen(false);
     onSearch(inputValue);
@@ -145,19 +154,19 @@ export default function SearchBar({ onSearch }) {
 
   return (
     <div className="relative w-full">
-      <form onSubmit={handleSubmit} className="relative flex items-center">
+      <form onSubmit={handleSubmit} className="flex items-center gap-3 w-full">
         <input
           type="text"
           value={inputValue}
           onChange={handleInputChange}
           placeholder="行きたい場所や駅名を入力..."
-          className="w-full py-3.5 pl-5 pr-12 rounded-full bg-white/90 backdrop-blur-md text-slate-800 placeholder-slate-400 font-medium shadow-md border border-white/60 focus:outline-none focus:ring-2 focus:ring-app-accent/50 transition-all text-sm"
+          className="flex-1 py-3 px-5 rounded-full bg-white text-slate-800 placeholder-slate-400 font-medium shadow-md border border-white/60 focus:outline-none focus:ring-2 focus:ring-[#D9FAF9] transition-all text-sm"
         />
         <button
           type="submit"
-          className="absolute right-2 p-2 bg-app-accent text-app-main rounded-full hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center justify-center"
+          className="py-3 px-6 bg-[#D9FAF9] text-[#004B88] font-bold rounded-full hover:brightness-95 active:scale-95 transition-all shadow-md whitespace-nowrap text-sm border border-white/60"
         >
-          🔍
+          検索
         </button>
       </form>
 
@@ -188,6 +197,13 @@ export default function SearchBar({ onSearch }) {
           })}
         </ul>
       )}
+      {/* 未入力警告用 CustomModal */}
+      <CustomModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="入力エラー"
+        message={modalMessage}
+      />
     </div>
   );
 }
