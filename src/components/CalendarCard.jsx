@@ -135,18 +135,29 @@ export default function CalendarCard({
         dateClick={handleDateClick}
         eventClick={handleEventClick}
         events={allEvents}
-        /* ★追加: イベント描画カスタム（溢れた文字を ellipsis/truncate で省略） */
         eventContent={(eventInfo) => {
-          const isHolidayOrSeasonal =
-            eventInfo.event.extendedProps?.isHoliday ||
-            eventInfo.event.extendedProps?.isSeasonal;
+          const isHoliday = eventInfo.event.extendedProps?.isHoliday;
+          const isSeasonal = eventInfo.event.extendedProps?.isSeasonal;
 
-          // 祝日や季節イベントは既存の表示スタイルのまま
-          if (isHolidayOrSeasonal) {
-            return <div className="truncate">{eventInfo.event.title}</div>;
+          // 1. 祝日の場合：文字色をくっきりした赤色にし、truncate（...）を外して全文字表示
+          if (isHoliday) {
+            return (
+              <div className="text-[10px] font-bold text-red-600 whitespace-normal leading-tight px-0.5">
+                {eventInfo.event.title}
+              </div>
+            );
           }
 
-          // 登録された旅程タイトルの枠は truncate で三点リーダー省略
+          // 2. 季節イベントの場合：文字色を濃いグレーにし、truncate（...）を外して全文字表示
+          if (isSeasonal) {
+            return (
+              <div className="text-[10px] font-medium text-slate-600 whitespace-normal leading-tight px-0.5">
+                {eventInfo.event.title}
+              </div>
+            );
+          }
+
+          // 3. 自分で設定した旅程（Plan）の場合：青背景の白文字で truncate（...）を維持
           return (
             <div className="w-full px-1 truncate text-xs font-bold text-white">
               {eventInfo.event.title}
