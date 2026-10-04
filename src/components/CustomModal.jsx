@@ -26,9 +26,9 @@ export default function CustomModal({
 
   const handleOk = () => {
     if (onConfirm) {
-      onConfirm(); // onConfirm が渡されている場合はこちらだけを実行
+      onConfirm();
     } else if (onClose) {
-      onClose(); // onConfirm がない場合（通常のOKボタン等）のみ onClose を実行
+      onClose();
     }
   };
 

@@ -55,6 +55,27 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
   }, [plans]);
 
+  // アプリ起動時に現在地（GPS）を1度だけ自動取得する処理
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          // GPSの座標をセット
+          setSearchLocation(userLocation);
+        },
+        (error) => {
+          console.warn("位置情報の取得に失敗または拒否されました:", error);
+          // 取得拒否や失敗時は null のまま（デフォルト位置を表示）
+        },
+        { enableHighAccuracy: true, timeout: 10000 },
+      );
+    }
+  }, []);
+
   const handleDateSelect = (dateStr) => {
     setSelectedDate(dateStr);
   };
