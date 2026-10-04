@@ -1,33 +1,48 @@
 export default function GoogleMapCard({ location }) {
-  // .env.local から API キーを取得
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-  // 1. location が「文字列」か「オブジェクト」かを判定して地名を抽出（安全ガード）
-  const rawLocation =
-    typeof location === "string"
-      ? location
-      : location?.mainText || location?.name || location?.description || "";
+  let targetQuery = "";
+  let displayLabel = "";
 
-  // 2. 余計な空白をカットして安全な文字列にする
-  const validLocation = rawLocation.trim();
+  if (typeof location === "string" && location.trim() !== "") {
+    // 1. 文字列で地名が渡された場合（例: "博多駅"）
+    targetQuery = location.trim();
+    displayLabel = location.trim();
+  } else if (location && typeof location === "object") {
+    // 2. 座標オブジェクト { lat, lng } または Places API オブジェクトの場合
+    const lat = location.lat ?? location.latitude;
+    const lng = location.lng ?? location.longitude;
 
-  // 3. 検索キーワードがない場合、デフォルトを "My Location"（現在地）にする
-  const targetLocation = validLocation !== "" ? validLocation : "My Location";
+    if (lat && lng) {
+      targetQuery = `${lat},${lng}`;
+      displayLabel = "現在地";
+    } else {
+      // mainText や description などのテキスト抽出
+      targetQuery =
+        location.mainText || location.name || location.description || "";
+      displayLabel = location.mainText || location.name || "検索地点";
+    }
+  }
 
-  // Google Maps Embed API の URL 生成（q パラメータに場所を指定）
+  // 3. 初期状態（searchLocation が null の場合）のピン立てデフォルト位置設定
+  // ※ ピンを確実に立てるため、"My Location" ではなく具体的なランドマークまたは座標を指定します
+  const finalQuery = targetQuery.trim() !== "" ? targetQuery : "福岡タワー";
+
+  // Google Maps Embed API（place モードは q に渡した特定の場所・座標に確実にピンを立てます）
   const mapSrc = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(
-    targetLocation,
+    finalQuery,
   )}`;
 
   return (
     <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 space-y-3">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
-          <span>🗺️</span> {validLocation ? "目的地マップ" : "現在地マップ"}
+          <span>🗺️</span>{" "}
+          {displayLabel ? "目的地マップ" : "おすすめ・現在地エリア"}
         </h3>
-        {validLocation && (
+        {displayLabel && (
           <span className="text-xs bg-app-accent/20 text-app-main px-2.5 py-0.5 rounded-full font-bold truncate max-w-[150px]">
-            {validLocation}
+            {displayLabel}
           </span>
         )}
       </div>
