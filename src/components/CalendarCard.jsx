@@ -122,7 +122,7 @@ export default function CalendarCard({
   return (
     <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60">
       <FullCalendar
-        key={`${dateRange.startDate}-${dateRange.endDate}-${allEvents.length}`}
+        key={`${dateRange?.startDate}-${dateRange?.endDate}-${allEvents.length}`}
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         headerToolbar={{
@@ -146,7 +146,6 @@ export default function CalendarCard({
           const isHoliday = eventInfo.event.extendedProps?.isHoliday;
           const isSeasonal = eventInfo.event.extendedProps?.isSeasonal;
 
-          // 1. 祝日の場合：文字色をくっきりした赤色にし、truncate（...）を外して全文字表示
           if (isHoliday) {
             return (
               <div className="text-[10px] font-bold text-red-600 whitespace-normal leading-tight px-0.5">
@@ -155,7 +154,6 @@ export default function CalendarCard({
             );
           }
 
-          // 2. 季節イベントの場合：文字色を濃いグレーにし、truncate（...）を外して全文字表示
           if (isSeasonal) {
             return (
               <div className="text-[10px] font-medium text-slate-600 whitespace-normal leading-tight px-0.5">
@@ -164,7 +162,6 @@ export default function CalendarCard({
             );
           }
 
-          // 3. 自分で設定した旅程（Plan）の場合：青背景の白文字で truncate（...）を維持
           return (
             <div className="w-full px-1 truncate text-xs font-bold text-white">
               {eventInfo.event.title}
@@ -188,19 +185,32 @@ export default function CalendarCard({
             classes.push("fc-day-saturday");
           }
 
-          const { startDate, endDate } = dateRange;
+          const rawStart = dateRange?.startDate;
+          const rawEnd = dateRange?.endDate;
 
-          if (startDate && !endDate && cellDate === startDate) {
-            classes.push("selected-day-cell");
+          const startStr = rawStart
+            ? String(rawStart).split("T")[0].replace(/\//g, "-")
+            : null;
+          const endStr = rawEnd
+            ? String(rawEnd).split("T")[0].replace(/\//g, "-")
+            : null;
+
+          let isSelected = false;
+
+          if (startStr && (!endStr || startStr === endStr)) {
+            isSelected = cellDate === startStr;
+          } else if (startStr && endStr) {
+            isSelected = cellDate >= startStr && cellDate <= endStr;
           }
 
-          if (
-            startDate &&
-            endDate &&
-            cellDate >= startDate &&
-            cellDate <= endDate
-          ) {
-            classes.push("selected-day-cell");
+          if (isSelected) {
+            // 一目でわかる濃い青背景（#0284c7）と白文字（#ffffff）を強制指定
+            classes.push(
+              "selected-day-cell",
+              "!bg-[#0284c7]",
+              "!text-white",
+              "!font-black",
+            );
           }
 
           return classes;

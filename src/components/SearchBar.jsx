@@ -11,11 +11,9 @@ export default function SearchBar({ onSearch }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
 
-  // places ライブラリを保持するRef
   const placesLibRef = useRef(null);
 
   useEffect(() => {
-    // 新しいローダー共通関数を利用して places ライブラリを取得
     loadGoogleMapsLibrary("places")
       .then((places) => {
         placesLibRef.current = places;
@@ -63,9 +61,9 @@ export default function SearchBar({ onSearch }) {
     }
   };
 
-  // 候補選択時（placeIdでの確実な座標取得ロジック追加）
+  // 候補選択時（安全な toPlace 呼び出しと座標取得）
   const handleSelectPrediction = async (suggestion) => {
-    const p = suggestion.placePrediction;
+    const p = suggestion.placePrediction || {};
     const description = p.text?.text || p.mainText?.text || "";
 
     setInputValue(description);
@@ -75,20 +73,31 @@ export default function SearchBar({ onSearch }) {
     let lat = null;
     let lng = null;
 
-    // 1. fetchFields による取得を試行
+    // 1. fetchFields による取得を安全に試行
     try {
-      const place = suggestion.toPlace();
-      await place.fetchFields({ fields: ["location", "formattedAddress"] });
+      const toPlaceFunc =
+        typeof suggestion.toPlace === "function"
+          ? suggestion.toPlace.bind(suggestion)
+          : typeof p.toPlace === "function"
+            ? p.toPlace.bind(p)
+            : null;
 
-      if (place.location) {
-        lat =
-          typeof place.location.lat === "function"
-            ? place.location.lat()
-            : place.location.lat;
-        lng =
-          typeof place.location.lng === "function"
-            ? place.location.lng()
-            : place.location.lng;
+      if (toPlaceFunc) {
+        const place = toPlaceFunc();
+        if (place && typeof place.fetchFields === "function") {
+          await place.fetchFields({ fields: ["location", "formattedAddress"] });
+
+          if (place.location) {
+            lat =
+              typeof place.location.lat === "function"
+                ? place.location.lat()
+                : place.location.lat;
+            lng =
+              typeof place.location.lng === "function"
+                ? place.location.lng()
+                : place.location.lng;
+          }
+        }
       }
     } catch (error) {
       console.warn(
@@ -181,7 +190,7 @@ export default function SearchBar({ onSearch }) {
       {isOpen && predictions.length > 0 && (
         <ul className="absolute left-0 right-0 top-full mt-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-40 animate-fade-in divide-y divide-slate-100">
           {predictions.map((item, index) => {
-            const p = item.placePrediction;
+            const p = item.placePrediction || {};
             const displayText = p.text?.text || p.mainText?.text || "";
 
             return (
