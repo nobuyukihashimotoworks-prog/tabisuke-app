@@ -26,7 +26,7 @@ export default function GoogleMapCard({ location }) {
 
   // 3. 初期状態（searchLocation が null の場合）のピン立てデフォルト位置設定
   // ※ ピンを確実に立てるため、"My Location" ではなく具体的なランドマークまたは座標を指定します
-  const finalQuery = targetQuery.trim() !== "" ? targetQuery : "福岡タワー";
+  const finalQuery = targetQuery.trim() !== "" ? targetQuery : "東京駅";
 
   // Google Maps Embed API（place モードは q に渡した特定の場所・座標に確実にピンを立てます）
   const mapSrc = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(
