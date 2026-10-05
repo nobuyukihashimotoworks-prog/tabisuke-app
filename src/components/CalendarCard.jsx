@@ -135,6 +135,13 @@ export default function CalendarCard({
         dateClick={handleDateClick}
         eventClick={handleEventClick}
         events={allEvents}
+        dayCellContent={(arg) => {
+          return (
+            <span className="text-[11px] sm:text-xs font-semibold whitespace-nowrap tracking-tighter leading-none">
+              {arg.dayNumberText}
+            </span>
+          );
+        }}
         eventContent={(eventInfo) => {
           const isHoliday = eventInfo.event.extendedProps?.isHoliday;
           const isSeasonal = eventInfo.event.extendedProps?.isSeasonal;
