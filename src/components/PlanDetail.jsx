@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import HeaderLogo from "./HeaderLogo";
 import RouteMapCard from "./RouteMapCard";
+import CustomModal from "./CustomModal";
 import {
   getCoordinates,
   fetchWeather,
@@ -41,6 +42,9 @@ export default function PlanDetail({
   // 天気情報の状態管理
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
+
+  // アラートモーダル用ステート
+  const [alertMessage, setAlertMessage] = useState("");
 
   // ★ テスト天気機能（テスト時はコメント解除）
   // const [testWeatherKey, setTestWeatherKey] = useState(null);
@@ -114,10 +118,18 @@ export default function PlanDetail({
     }
   };
 
-  // --- Todoの追加 ---
+  // --- Todoの追加（30件上限チェック） ---
   const handleAddTodo = (e) => {
     e.preventDefault();
     if (!todoInput.trim()) return;
+
+    // 30件上限チェック
+    if (todos.length >= 30) {
+      setAlertMessage(
+        "登録できるのは30項目までです。詰め込み過ぎると楽しめませんよ？",
+      );
+      return;
+    }
 
     const newTodo = { id: Date.now(), text: todoInput.trim() };
     const nextTodos = [...todos, newTodo];
@@ -145,11 +157,43 @@ export default function PlanDetail({
     onBack();
   };
 
-  // --- Google Hotels連携 ---
+  // --- 指摘7対応：Google Hotels連携 (場所および日程の反映) ---
   const handleSearchHotel = () => {
     const locationName = targetLocation || "東京";
-    const keyword = encodeURIComponent(locationName);
-    const searchUrl = `https://www.google.com/travel/hotels?q=${keyword}`;
+    const searchParams = new URLSearchParams();
+
+    // 検索キーワードの設定
+    searchParams.append("q", locationName);
+
+    // チェックイン・チェックアウト日付の解析
+    const startDateStr = plan?.dateRange?.startDate || plan?.date;
+    const endDateStr = plan?.dateRange?.endDate;
+
+    if (startDateStr) {
+      // YYYY-MM-DD 形式か確認・パース
+      const startDate = new Date(startDateStr);
+      if (!isNaN(startDate.getTime())) {
+        const startDateFormatted = startDate.toISOString().split("T")[0];
+        searchParams.append("checkin", startDateFormatted);
+
+        if (endDateStr) {
+          const endDate = new Date(endDateStr);
+          if (!isNaN(endDate.getTime())) {
+            searchParams.append(
+              "checkout",
+              endDate.toISOString().split("T")[0],
+            );
+          }
+        } else {
+          // 終了日未指定時は翌日をデフォルトのチェックアウト日に設定（1泊2日）
+          const nextDay = new Date(startDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          searchParams.append("checkout", nextDay.toISOString().split("T")[0]);
+        }
+      }
+    }
+
+    const searchUrl = `https://www.google.com/travel/hotels?${searchParams.toString()}`;
     window.open(searchUrl, "_blank", "noopener,noreferrer");
   };
 
@@ -281,38 +325,6 @@ export default function PlanDetail({
 
       {/* 4. 天気エリア */}
       <div className="space-y-2">
-        {/* 🛠️ Figma撮影用：一時的な切り替えボタン（確認時は下記のコメントアウト解除） */}
-        {/*
-        <div className="p-2.5 bg-slate-800 text-white rounded-2xl text-xs space-y-2 z-20 relative">
-          <p className="font-bold text-slate-300">
-            🔍 天気テスト切替（Figma撮影用）
-          </p>
-          <div className="flex gap-1.5 flex-wrap">
-            {TEST_WEATHER_DATA && Object.keys(TEST_WEATHER_DATA).map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setTestWeatherKey(key)}
-                className={`px-2.5 py-1 rounded-full font-bold text-[11px] transition-all ${
-                  testWeatherKey === key
-                    ? "bg-[#d0f0ec] text-slate-900 shadow"
-                    : "bg-slate-700 hover:bg-slate-600 text-slate-200"
-                }`}
-              >
-                {key}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setTestWeatherKey(null)}
-              className="px-2.5 py-1 bg-rose-500 text-white rounded-full font-bold text-[11px] ml-auto"
-            >
-              解除
-            </button>
-          </div>
-        </div>
-        */}
-
         <h3 className="text-center font-bold text-slate-700 text-sm">
           {getDateText() ? `${getDateText()} の` : ""}
           {targetLocation || "目的地"} の天気
@@ -395,7 +407,16 @@ export default function PlanDetail({
         </div>
       </div>
 
-      {/* 6. 削除モーダル群 */}
+      {/* 6. 警告・アラート用統一モーダル */}
+      <CustomModal
+        isOpen={Boolean(alertMessage)}
+        message={alertMessage}
+        type="alert"
+        okText="OK"
+        onClose={() => setAlertMessage("")}
+      />
+
+      {/* 7. 削除モーダル群 */}
       {deleteModalState === "confirm" && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-[2px] flex items-center justify-center z-50 p-6">
           <div className="bg-[#E0F8F6] rounded-3xl p-8 w-full max-w-xs shadow-xl text-center space-y-3 border border-white">

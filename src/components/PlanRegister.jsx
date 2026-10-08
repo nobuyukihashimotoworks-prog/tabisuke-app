@@ -36,7 +36,7 @@ export default function PlanRegister({
     ? `${dateRange.startDate} 〜 ${dateRange.endDate}`
     : dateRange.startDate;
 
-  // 30文字を超えているかどうかの判定フラグ
+  // 30文字を超えているかどうかの判定フラグ (設計書更新後の仕様: 30文字制限)
   const isTitleTooLong = planTitle.length > 30;
 
   // 指定された日付（YYYY-MM-DD）が既存の旅程と重複しているかチェック
@@ -86,10 +86,18 @@ export default function PlanRegister({
     }
   };
 
-  // やりたいこと（ToDo）の追加
+  // やりたいこと（ToDo）の追加（指摘4対応: 30件上限チェック）
   const handleAddTodo = (e) => {
     e.preventDefault();
     if (!todoInput.trim()) return;
+
+    // 30件上限チェック
+    if (todoList.length >= 30) {
+      setAlertMessage(
+        "登録できるのは30項目までです。詰め込み過ぎると楽しめませんよ？",
+      );
+      return;
+    }
 
     const newTodo = {
       id: Date.now(),
@@ -119,7 +127,7 @@ export default function PlanRegister({
     }
 
     if (trimmedTitle.length > 30) {
-      setAlertMessage("タイトルが長すぎます。");
+      setAlertMessage("タイトルは30文字以内で入力してください。");
       return;
     }
 
@@ -167,6 +175,7 @@ export default function PlanRegister({
             value={todoInput}
             onChange={(e) => setTodoInput(e.target.value)}
             placeholder="例：浅草寺に行く"
+            maxLength={100}
             className="flex-1 py-2.5 px-4 rounded-full bg-white text-slate-800 text-sm shadow-sm border border-white/60 focus:outline-none"
           />
           <button
@@ -205,6 +214,7 @@ export default function PlanRegister({
             value={planTitle}
             onChange={(e) => setPlanTitle(e.target.value)}
             placeholder="タイトルを入れてください（例：浅草観光）"
+            maxLength={30}
             className={`w-full py-2.5 px-4 rounded-full bg-white text-slate-800 text-sm shadow-sm border focus:outline-none text-center truncate transition-colors ${
               isTitleTooLong
                 ? "border-red-500 text-red-600 focus:ring-1 focus:ring-red-500"
@@ -214,7 +224,7 @@ export default function PlanRegister({
 
           <div className="flex justify-between items-center px-4 text-xs font-bold">
             <span className="text-red-500">
-              {isTitleTooLong && "※ タイトルが長すぎます（30文字以内）"}
+              {isTitleTooLong && "※ タイトルは30文字以内で入力してください"}
             </span>
             <span
               className={isTitleTooLong ? "text-red-500" : "text-slate-400"}
