@@ -10,6 +10,17 @@ export const FALLBACK_WEATHER = {
   isFallback: true,
 };
 
+// 予報期間外（5日より先、または過去）の場合の表示用データ
+export const OUT_OF_RANGE_WEATHER = {
+  label: "予報期間外",
+  icon: "📅",
+  temp: "--",
+  maxTemp: "--",
+  minTemp: "--",
+  isFallback: true,
+  isOutOfRange: true,
+};
+
 // OpenWeatherMapの天気メインコードを日本語・絵文字に変換するマップ
 const WEATHER_MAP = {
   Clear: { label: "晴れ", icon: "☀️" },
@@ -28,23 +39,17 @@ const WEATHER_MAP = {
 function generateQueryCandidates(rawLocation) {
   if (!rawLocation) return [];
 
-  // 先頭の「日本、」「日本 」を削除
   let cleaned = rawLocation.trim().replace(/^日本[、, \t]*/, "");
-
   const candidates = [];
 
-  // 1. 全体（例: "福岡県久留米市御井町１ 高良大社"）
   candidates.push(cleaned);
 
-  // 2. スペースで区切られた単語（例: "高良大社" や "福岡県久留米市御井町１"）
-  const parts = cleaned.split(/[  ,、]/).filter(Boolean);
+  const parts = cleaned.split(/[ ,、]/).filter(Boolean);
   if (parts.length > 1) {
-    // 施設名などの最後・最初の単語を追加
-    candidates.push(parts[parts.length - 1]); // 例: "高良大社"
-    candidates.push(parts[0]); // 例: "福岡県久留米市御井町１"
+    candidates.push(parts[parts.length - 1]);
+    candidates.push(parts[0]);
   }
 
-  // 3. 都道府県・市区町村までの抽出（例: "福岡県久留米市"）
   const cityMatch = cleaned.match(/(.+?[都道府県]?.+?[市区町村])/);
   if (cityMatch && cityMatch[1] && !candidates.includes(cityMatch[1])) {
     candidates.push(cityMatch[1]);
@@ -69,7 +74,7 @@ export async function getCoordinates(locationName) {
 
       const response = await fetch(url, {
         headers: {
-          "User-Agent": "TravelPlannerApp/1.0", // Nominatim API 利用に必要なヘッダー
+          "User-Agent": "TravelPlannerApp/1.0",
         },
       });
 
@@ -98,9 +103,12 @@ export async function getCoordinates(locationName) {
 }
 
 /**
- * 2. 緯度・経度から 5日間/3時間おきの天気予報を取得する (OpenWeatherMap Forecast API)
+ * 2. 緯度・経度と「予定日」から該当日の天気予報を取得する (OpenWeatherMap Forecast API)
+ * @param {number} lat - 緯度
+ * @param {number} lon - 経度
+ * @param {string} targetDate - 予定日 (例: "2026-10-10" や "2026-10-10T00:00:00")
  */
-export async function fetchWeather(lat, lon) {
+export async function fetchWeather(lat, lon, targetDate = null) {
   if (!lat || !lon || !API_KEY) {
     console.warn("⚠️ APIキーまたは座標がないためフォールバック表示にします");
     return FALLBACK_WEATHER;
@@ -122,11 +130,68 @@ export async function fetchWeather(lat, lon) {
       return FALLBACK_WEATHER;
     }
 
-    // 最新（直近）の予報データを抽出
-    const currentWeather = data.list[0];
-    const mainCondition = currentWeather.weather[0]?.main;
+    // 予定日が指定されていない場合は直近のデータを返す（安全対策）
+    if (!targetDate) {
+      const currentWeather = data.list[0];
+      const mainCondition = currentWeather.weather[0]?.main;
+      const conditionInfo = WEATHER_MAP[mainCondition] || {
+        label: currentWeather.weather[0]?.description || "不明",
+        icon: "🌤️",
+      };
+      return {
+        label: conditionInfo.label,
+        icon: conditionInfo.icon,
+        main: mainCondition || "Clouds",
+        conditionKey: mainCondition || "Clouds",
+        temp: Math.round(currentWeather.main.temp),
+        maxTemp: Math.round(currentWeather.main.temp_max),
+        minTemp: Math.round(currentWeather.main.temp_min),
+        isFallback: false,
+      };
+    }
+
+    // ターゲット日付を YYYY-MM-DD 形式に正規化
+    const formattedTargetDate = String(targetDate).split("T")[0];
+
+    // 【修正箇所】-------------------------------------------------------------
+    // APIが返す dt (UNIXタイムスタンプ) を日本時間 (Asia/Tokyo) の YYYY-MM-DD に変換して比較します。
+    // (従来の dt_txt 文字列比較だと UTC と JST の9時間差により日付ズレが発生するため)
+    const matchingForecasts = data.list.filter((item) => {
+      const itemDateJST = new Date(item.dt * 1000).toLocaleDateString("sv-SE", {
+        timeZone: "Asia/Tokyo",
+      }); // "sv-SE" ロケールを使うことで "YYYY-MM-DD" 形式で取得できます
+      return itemDateJST === formattedTargetDate;
+    });
+    // -------------------------------------------------------------------------
+
+    // 該当する日付の予報がリスト内にない場合（5日以上の未来、または過去）
+    if (matchingForecasts.length === 0) {
+      console.warn(
+        `⚠️ 予定日 (${formattedTargetDate}) は予報期間外（5日以内）です`,
+      );
+      return OUT_OF_RANGE_WEATHER;
+    }
+
+    // 【修正箇所】-------------------------------------------------------------
+    // 昼12:00頃（JST時間）の予報を優先抽出します。
+    // 見つからなければその日の最初の予報を採用します。
+    const targetForecast =
+      matchingForecasts.find((item) => {
+        const itemHourJST = new Date(item.dt * 1000).toLocaleTimeString(
+          "ja-JP",
+          {
+            timeZone: "Asia/Tokyo",
+            hour: "2-digit",
+            hour12: false,
+          },
+        );
+        return itemHourJST === "12";
+      }) || matchingForecasts[0];
+    // -------------------------------------------------------------------------
+
+    const mainCondition = targetForecast.weather[0]?.main;
     const conditionInfo = WEATHER_MAP[mainCondition] || {
-      label: currentWeather.weather[0]?.description || "不明",
+      label: targetForecast.weather[0]?.description || "不明",
       icon: "🌤️",
     };
 
@@ -135,9 +200,9 @@ export async function fetchWeather(lat, lon) {
       icon: conditionInfo.icon,
       main: mainCondition || "Clouds",
       conditionKey: mainCondition || "Clouds",
-      temp: Math.round(currentWeather.main.temp),
-      maxTemp: Math.round(currentWeather.main.temp_max),
-      minTemp: Math.round(currentWeather.main.temp_min),
+      temp: Math.round(targetForecast.main.temp),
+      maxTemp: Math.round(targetForecast.main.temp_max),
+      minTemp: Math.round(targetForecast.main.temp_min),
       isFallback: false,
     };
   } catch (error) {

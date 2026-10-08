@@ -71,6 +71,9 @@ export default function PlanDetail({
     setTodos(plan?.todos || []);
   }
 
+  // 天気情報の抽出に必要な値だけを個別に変数として定義
+  const targetDate = plan?.dateRange?.startDate || plan?.date;
+
   // 天気データの取得処理
   useEffect(() => {
     async function loadWeather() {
@@ -84,7 +87,12 @@ export default function PlanDetail({
       const coords = await getCoordinates(targetLocation);
 
       if (coords) {
-        const weatherData = await fetchWeather(coords.lat, coords.lon);
+        // 依存配列で監視している targetDate をそのまま使用
+        const weatherData = await fetchWeather(
+          coords.lat,
+          coords.lon,
+          targetDate,
+        );
         setWeather(weatherData);
       } else {
         setWeather(FALLBACK_WEATHER);
@@ -94,8 +102,7 @@ export default function PlanDetail({
     }
 
     loadWeather();
-  }, [targetLocation, plan]);
-
+  }, [targetLocation, targetDate]);
   if (!plan && deleteModalState !== "complete") return null;
 
   // --- 日付表示テキストの取得 ---
