@@ -156,6 +156,8 @@ export default function App() {
           plan={selectedPlan}
           onBack={() => setCurrentScreen("home")}
           onUpdatePlan={handleUpdatePlan}
+          /* 【修正点】編集画面でも既存の全予定との日付重複（ダブルブッキング）チェックを行えるよう、plansを渡す */
+          plans={plans}
         />
       )}
 

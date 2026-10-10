@@ -3,7 +3,8 @@ import HeaderLogo from "./HeaderLogo";
 import CalendarCard from "./CalendarCard";
 import CustomModal from "./CustomModal";
 
-export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
+// 【修正点】親コンポーネントから既存のプラン一覧 (plans) を受け取れるようにプロパティを追加
+export default function PlanEdit({ plan, plans = [], onBack, onUpdatePlan }) {
   const [title, setTitle] = useState(plan?.title || "");
 
   // 単日（plan.date）または 期間（plan.dateRange）に対応
@@ -14,26 +15,70 @@ export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
 
   // モーダルの表示ステート ("none" | "alert" | "confirm" | "complete")
   const [modalState, setModalState] = useState("none");
+  const [alertMessage, setAlertMessage] = useState("");
 
-  // カレンダーでタップされた時の期間選択処理
-  const handleDateSelect = (clickedDateStr) => {
+  // 【修正点】タイトルの文字数が30文字を超えているかどうかの判定フラグ (設計書・新規登録画面と仕様を統一)
+  const isTitleTooLong = title.length > 30;
+
+  // 【修正点】指定された日付（YYYY-MM-DD）が「自分自身を除く」既存の旅程と重複しているかチェックする関数
+  const isDateBooked = (dateStr) => {
+    return plans.some((p) => {
+      // 編集中の自分自身のプランIDと一致する場合は、重複チェックの対象外（除外）にする
+      if (p.id === plan?.id) return false;
+      const start = p.dateRange?.startDate;
+      if (!start) return false;
+      const end = p.dateRange?.endDate || start;
+      return dateStr >= start && dateStr <= end;
+    });
+  };
+
+  // カレンダーでタップされた時の期間選択処理（ダブルブッキング防止ロジックを追加）
+  const handleDateSelect = (selectedDateStr) => {
+    // 【修正点 A】タップした単一の日付がすでに他の予約と重複しているかチェック
+    if (isDateBooked(selectedDateStr)) {
+      setAlertMessage("ダブルブッキングはできません！！");
+      setModalState("alert");
+      return;
+    }
+
+    // 【修正点 B】期間選択時（開始日〜選択した終了日の間に他の既存予定が含まれていないかチェック）
+    if (dateRange.startDate && !dateRange.endDate) {
+      if (selectedDateStr >= dateRange.startDate) {
+        const hasOverlap = plans.some((p) => {
+          if (p.id === plan?.id) return false;
+          const start = p.dateRange?.startDate;
+          if (!start) return false;
+          const end = p.dateRange?.endDate || start;
+          return !(selectedDateStr < start || dateRange.startDate > end);
+        });
+
+        if (hasOverlap) {
+          setAlertMessage(
+            "選択した期間内に既存の予定が含まれているため、ダブルブッキングはできません！！",
+          );
+          setModalState("alert");
+          return;
+        }
+      }
+    }
+
     const { startDate, endDate } = dateRange;
 
     if (!startDate || (startDate && endDate)) {
       setDateRange({
-        startDate: clickedDateStr,
+        startDate: selectedDateStr,
         endDate: null,
       });
     } else if (startDate && !endDate) {
-      if (clickedDateStr < startDate) {
+      if (selectedDateStr < startDate) {
         setDateRange({
-          startDate: clickedDateStr,
+          startDate: selectedDateStr,
           endDate: null,
         });
       } else {
         setDateRange({
           startDate,
-          endDate: clickedDateStr,
+          endDate: selectedDateStr,
         });
       }
     }
@@ -50,13 +95,31 @@ export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
     return dateRange.startDate || "日付未選択";
   };
 
-  // 「旅程を変更する」ボタンを押したとき
+  // 「旅程を変更する」ボタンを押したとき（新規登録画面と同様の入力チェック・バリデーションを追加）
   const handleOpenConfirm = () => {
+    // 1. 日付選択チェック
     if (!dateRange.startDate) {
-      // ★ alert("日付を選択してください") を CustomModal 表示へ変更
+      setAlertMessage("カレンダーから日付を選択してください");
       setModalState("alert");
       return;
     }
+
+    const trimmedTitle = title.trim();
+
+    // 2. タイトル未入力チェック
+    if (!trimmedTitle) {
+      setAlertMessage("タイトルの入力がありません。");
+      setModalState("alert");
+      return;
+    }
+
+    // 3. タイトル文字数制限チェック（30文字以内）
+    if (trimmedTitle.length > 30) {
+      setAlertMessage("タイトルは30文字以内で入力してください。");
+      setModalState("alert");
+      return;
+    }
+
     setModalState("confirm");
   };
 
@@ -68,7 +131,7 @@ export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
     const updatedPlan = {
       ...plan,
       title: updatedTitle,
-      date: dateRange.startDate,
+      date: getFormattedDateText(),
       dateRange: {
         startDate: dateRange.startDate,
         endDate: finalEndDate,
@@ -76,7 +139,6 @@ export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
     };
 
     if (onUpdatePlan) {
-      console.log("② onUpdatePlan を実行します");
       onUpdatePlan(updatedPlan);
     }
 
@@ -96,17 +158,18 @@ export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
 
       {/* 2. 現状のタイトル & 案内 */}
       <div className="text-center pt-2">
-        <h2 className="text-2xl font-bold text-app-main">
+        <h2 className="text-2xl font-bold text-app-main truncate px-4">
           {plan?.title || "現状のタイトル"}
         </h2>
         <p className="text-lg font-bold text-app-main mt-4">いつ行きますか？</p>
       </div>
 
-      {/* 3. カレンダー（期間選択機能つき） */}
+      {/* 3. カレンダー（期間選択・重複チェック機能つき） */}
+      {/* 【修正点】重複チェックを行うため、plans を CalendarCard にも渡す */}
       <CalendarCard
         onDateSelect={handleDateSelect}
         dateRange={dateRange}
-        plans={[]}
+        plans={plans}
       />
 
       {/* 4. フォーム & ボタンエリア */}
@@ -115,20 +178,41 @@ export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
           予定を立て直しますか？
         </p>
 
-        {/* 新しいタイトル入力欄 */}
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="新しいタイトルを入れてください"
-          className="w-full py-3 px-6 bg-white rounded-full text-center text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-app-main placeholder-gray-400"
-        />
+        {/* 【修正点】新規登録画面と同様のタイトル入力欄（文字数制限・超過時の赤字エラー表示機能付き） */}
+        <div className="w-full space-y-1">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="新しいタイトルを入れてください"
+            maxLength={30}
+            className={`w-full py-3 px-6 bg-white rounded-full text-center text-sm shadow-md focus:outline-none transition-colors border ${
+              isTitleTooLong
+                ? "border-red-500 text-red-600 focus:ring-1 focus:ring-red-500"
+                : "border-white/60 text-slate-800"
+            }`}
+          />
+          <div className="flex justify-between items-center px-4 text-xs font-bold">
+            <span className="text-red-500">
+              {isTitleTooLong && "※ タイトルは30文字以内で入力してください"}
+            </span>
+            <span
+              className={
+                isTitleTooLong
+                  ? "text-red-500 ml-auto"
+                  : "text-slate-400 ml-auto"
+              }
+            >
+              {title.length}/30
+            </span>
+          </div>
+        </div>
 
         {/* 旅程を変更するボタン */}
         <button
           type="button"
           onClick={handleOpenConfirm}
-          className="w-full py-4 bg-[#DDF7F5] text-app-main text-lg font-bold rounded-full shadow-md hover:opacity-90 transition active:scale-95"
+          className="w-full py-4 bg-app-accent text-app-main text-lg font-bold rounded-full shadow-md hover:opacity-90 transition active:scale-95"
         >
           旅程を変更する
         </button>
@@ -137,22 +221,22 @@ export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
         <button
           type="button"
           onClick={onBack}
-          className="self-start px-6 py-2 bg-[#DDF7F5] text-app-main font-bold rounded-full shadow-md hover:opacity-90 transition text-sm mt-2"
+          className="self-start px-6 py-2 bg-slate-200 text-slate-600 font-bold rounded-full shadow-md hover:bg-slate-300 transition text-sm mt-2"
         >
           戻る
         </button>
       </div>
 
-      {/* ★ 5. 日付未選択時の警告モーダル */}
+      {/* 5. 警告・アラート用モーダル */}
       <CustomModal
         isOpen={modalState === "alert"}
-        message="日付を選択してください"
+        message={alertMessage || "日付を選択してください"}
         type="alert"
         okText="OK"
         onClose={() => setModalState("none")}
       />
 
-      {/* ★ 6. 変更確認モーダル */}
+      {/* 6. 変更確認モーダル */}
       <CustomModal
         isOpen={modalState === "confirm"}
         title={title.trim() || plan?.title}
@@ -165,7 +249,7 @@ export default function PlanEdit({ plan, onBack, onUpdatePlan }) {
         onClose={() => setModalState("none")}
       />
 
-      {/* ★ 7. 変更完了モーダル */}
+      {/* 7. 変更完了モーダル */}
       <CustomModal
         isOpen={modalState === "complete"}
         message="日程変更が完了しました"
