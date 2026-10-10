@@ -660,3 +660,55 @@
   padding: 2px 6px !important;
   font-weight: bold;
 }
+
+/* =========================================================
+   【修正・調整】6行の月でも一切見切れないよう正方形をベースにしつつ、
+   最小限の縦幅（1:1.15比率）を持たせてスクロールバー・見切れを防ぐ設定
+   ========================================================= */
+
+/* カレンダーの親カード（正方形に近い比率を維持しつつ6行が収まる高さを確保） */
+.calendar-card-container {
+  aspect-ratio: 1 / 1.15; /* 完全な正方形から6行月に合わせて微調整 */
+  min-height: 390px; /* 6行表示時にも文字やイベントが潰れない最小高さを確保 */
+  overflow: hidden !important;
+}
+
+/* FullCalendar自体の高さをコンテナに追従させる */
+.calendar-card-container .fc {
+  height: 100% !important;
+  max-height: 100% !important;
+  font-size: 0.78rem; /* フォントをわずかに縮小して各セルへの収まりを向上 */
+}
+
+/* カレンダービュー領域の高さ調整 */
+.calendar-card-container .fc-view-harness {
+  height: calc(100% - 32px) !important;
+  max-height: calc(100% - 32px) !important;
+}
+
+.calendar-card-container .fc-dayGridMonth-view {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.calendar-card-container .fc-scrollgrid {
+  height: 100% !important;
+}
+
+.calendar-card-container .fc-daygrid-body,
+.calendar-card-container .fc-daygrid-body table,
+.calendar-card-container .fc-scrollgrid-sync-table {
+  height: 100% !important;
+}
+
+/* 各日付セルの高さを最小化し、スクロールバーを出さずに全週を綺麗に収める */
+.calendar-card-container .fc-daygrid-day-frame {
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.calendar-card-container .fc-scroller {
+  overflow: hidden !important;
+}

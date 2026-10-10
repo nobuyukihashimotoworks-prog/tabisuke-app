@@ -120,102 +120,109 @@ export default function CalendarCard({
   ];
 
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60">
-      <FullCalendar
-        key={`${dateRange?.startDate}-${dateRange?.endDate}-${allEvents.length}`}
-        plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="dayGridMonth"
-        headerToolbar={{
-          left: "prev",
-          center: "title",
-          right: "next",
-        }}
-        locale="ja"
-        height="auto"
-        dateClick={handleDateClick}
-        eventClick={handleEventClick}
-        events={allEvents}
-        dayCellContent={(arg) => {
-          return (
-            <span className="text-[11px] sm:text-xs font-semibold whitespace-nowrap tracking-tighter leading-none">
-              {arg.dayNumberText}
-            </span>
-          );
-        }}
-        eventContent={(eventInfo) => {
-          const isHoliday = eventInfo.event.extendedProps?.isHoliday;
-          const isSeasonal = eventInfo.event.extendedProps?.isSeasonal;
-
-          if (isHoliday) {
+    /* 【修正点】MAPカードと揃えた正方形（aspect-square）のカード枠 */
+    // CalendarCard.jsx の return 内の最外層div
+    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 calendar-card-container flex flex-col">
+      {/* 【修正点】内部のラッパーを flex-1 にし、FullCalendarが枠内に綺麗にフィットするように指定 */}
+      <div className="flex-1 w-full h-full [&_.fc]:h-full [&_.fc-view-harness]:h-[calc(100%-40px)]">
+        <FullCalendar
+          key={`${dateRange?.startDate}-${dateRange?.endDate}-${allEvents.length}`}
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          headerToolbar={{
+            left: "prev",
+            center: "title",
+            right: "next",
+          }}
+          locale="ja"
+          /* 【修正点】高さを100%にして正方形の枠内にカレンダー全体を美しく収める */
+          height="100%"
+          contentHeight="100%"
+          fixedWeekCount={false}
+          dateClick={handleDateClick}
+          eventClick={handleEventClick}
+          events={allEvents}
+          dayCellContent={(arg) => {
             return (
-              <div className="text-[10px] font-bold text-red-600 whitespace-normal leading-tight px-0.5">
+              <span className="text-[10px] sm:text-xs font-semibold whitespace-nowrap tracking-tighter leading-none">
+                {arg.dayNumberText}
+              </span>
+            );
+          }}
+          eventContent={(eventInfo) => {
+            const isHoliday = eventInfo.event.extendedProps?.isHoliday;
+            const isSeasonal = eventInfo.event.extendedProps?.isSeasonal;
+
+            if (isHoliday) {
+              return (
+                <div className="text-[9px] font-bold text-red-600 truncate px-0.5 leading-none">
+                  {eventInfo.event.title}
+                </div>
+              );
+            }
+
+            if (isSeasonal) {
+              return (
+                <div className="text-[9px] font-medium text-slate-600 truncate px-0.5 leading-none">
+                  {eventInfo.event.title}
+                </div>
+              );
+            }
+
+            return (
+              <div className="w-full px-0.5 truncate text-[10px] font-bold text-white leading-none">
                 {eventInfo.event.title}
               </div>
             );
-          }
+          }}
+          dayCellClassNames={(arg) => {
+            const classes = [];
+            const date = arg.date;
+            const dayOfWeek = date.getDay();
 
-          if (isSeasonal) {
-            return (
-              <div className="text-[10px] font-medium text-slate-600 whitespace-normal leading-tight px-0.5">
-                {eventInfo.event.title}
-              </div>
-            );
-          }
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            const cellDate = `${year}-${month}-${day}`;
 
-          return (
-            <div className="w-full px-1 truncate text-xs font-bold text-white">
-              {eventInfo.event.title}
-            </div>
-          );
-        }}
-        dayCellClassNames={(arg) => {
-          const classes = [];
-          const date = arg.date;
-          const dayOfWeek = date.getDay();
+            const isHoliday = holidayJp.isHoliday(date);
+            if (dayOfWeek === 0 || isHoliday) {
+              classes.push("fc-day-holiday");
+            } else if (dayOfWeek === 6) {
+              classes.push("fc-day-saturday");
+            }
 
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-          const cellDate = `${year}-${month}-${day}`;
+            const rawStart = dateRange?.startDate;
+            const rawEnd = dateRange?.endDate;
 
-          const isHoliday = holidayJp.isHoliday(date);
-          if (dayOfWeek === 0 || isHoliday) {
-            classes.push("fc-day-holiday");
-          } else if (dayOfWeek === 6) {
-            classes.push("fc-day-saturday");
-          }
+            const startStr = rawStart
+              ? String(rawStart).split("T")[0].replace(/\//g, "-")
+              : null;
+            const endStr = rawEnd
+              ? String(rawEnd).split("T")[0].replace(/\//g, "-")
+              : null;
 
-          const rawStart = dateRange?.startDate;
-          const rawEnd = dateRange?.endDate;
+            let isSelected = false;
 
-          const startStr = rawStart
-            ? String(rawStart).split("T")[0].replace(/\//g, "-")
-            : null;
-          const endStr = rawEnd
-            ? String(rawEnd).split("T")[0].replace(/\//g, "-")
-            : null;
+            if (startStr && (!endStr || startStr === endStr)) {
+              isSelected = cellDate === startStr;
+            } else if (startStr && endStr) {
+              isSelected = cellDate >= startStr && cellDate <= endStr;
+            }
 
-          let isSelected = false;
+            if (isSelected) {
+              classes.push(
+                "selected-day-cell",
+                "!bg-[#0284c7]",
+                "!text-white",
+                "!font-black",
+              );
+            }
 
-          if (startStr && (!endStr || startStr === endStr)) {
-            isSelected = cellDate === startStr;
-          } else if (startStr && endStr) {
-            isSelected = cellDate >= startStr && cellDate <= endStr;
-          }
-
-          if (isSelected) {
-            // 一目でわかる濃い青背景（#0284c7）と白文字（#ffffff）を強制指定
-            classes.push(
-              "selected-day-cell",
-              "!bg-[#0284c7]",
-              "!text-white",
-              "!font-black",
-            );
-          }
-
-          return classes;
-        }}
-      />
+            return classes;
+          }}
+        />
+      </div>
     </div>
   );
 }

@@ -177,6 +177,13 @@ export default function App() {
           <SearchBar onSearch={handleSearchSubmit} />
           <GoogleMapCard location={searchLocation} />
 
+          {/* 【修正】「旅行スケジュールの確認」のタイトルを追加 */}
+          <div className="text-center pt-2">
+            <h3 className="text-lg font-bold text-app-main tracking-wide">
+              旅行スケジュールの確認
+            </h3>
+          </div>
+
           <CalendarCard
             selectedDate={selectedDate}
             onDateSelect={handleDateSelect}

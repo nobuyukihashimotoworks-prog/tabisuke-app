@@ -25,7 +25,6 @@ export default function GoogleMapCard({ location }) {
   }
 
   // 3. 初期状態（searchLocation が null の場合）のピン立てデフォルト位置設定
-  // ※ ピンを確実に立てるため、"My Location" ではなく具体的なランドマークまたは座標を指定します
   const finalQuery = targetQuery.trim() !== "" ? targetQuery : "東京駅";
 
   // Google Maps Embed API（place モードは q に渡した特定の場所・座標に確実にピンを立てます）
@@ -34,7 +33,8 @@ export default function GoogleMapCard({ location }) {
   )}`;
 
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 space-y-3">
+    // 【修正点】カード全体に aspect-square を適用し、横長ではなく正方形のバランスに調整
+    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 space-y-3 aspect-square flex flex-col">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
           <span>🗺️</span>{" "}
@@ -48,7 +48,8 @@ export default function GoogleMapCard({ location }) {
       </div>
 
       {/* 地図埋め込みエリア */}
-      <div className="w-full h-48 rounded-2xl overflow-hidden shadow-inner bg-slate-100 border border-slate-200">
+      {/* 【修正点】固定の高さ（h-48など）の代わりに flex-1 と w-full を指定し、カード内で正方形エリアに綺麗に収まるように変更 */}
+      <div className="w-full flex-1 rounded-2xl overflow-hidden shadow-inner bg-slate-100 border border-slate-200">
         <iframe
           title="Google Map"
           width="100%"
